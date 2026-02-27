@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arqitech — Expense Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --charcoal:   #101010;
+    --gray-blue:  #1E1F22;
+    --gray-mid:   #2A2C31;
+    --gray-light: #3A3C42;
+    --silver:     #BFC4CA;
+    --silver-lt:  #E6EAEE;
+    --white:      #FFFFFF;
+    --gold:       #C89A3F;
+    --gold-lt:    #FFF1B0;
+    --green:      #4FA177;
+    --warn:       #D52941;
+    --text-main:  #FFFFFF;
+    --text-muted: #BFC4CA;
+    --text-dim:   #6B7280;
+    --border:     #2A2C31;
+    --border-lt:  #3A3C42;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--charcoal);
+    color: var(--text-main);
+    font-size: 13.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  @media print {
+    body { background: #fff; color: #101010; }
+    .no-print { display: none !important; }
+    .sheet { box-shadow: none; margin: 0; max-width: 100%; }
+    .report-header { background: #101010 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    thead th { background: #101010 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .summary-item { background: #f5f5f5 !important; }
+    input, select, textarea { color: #222 !important; background: transparent !important; border-color: #ccc !important; }
+  }
+  .page-wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+  .sheet { background: var(--gray-blue); border: 1px solid var(--border-lt); box-shadow: 0 4px 40px rgba(0,0,0,0.5); }
+
+  /* HEADER */
+  .report-header {
+    background: var(--charcoal);
+    padding: 26px 36px 22px;
+    border-bottom: 1px solid var(--gold);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo-mark svg { width: 34px; height: 26px; display: block; }
+  .brand-text { display: flex; flex-direction: column; gap: 2px; }
+  .brand-name { font-size: 17px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; color: var(--white); }
+  .brand-sub { font-size: 9px; text-transform: uppercase; letter-spacing: 3px; color: var(--gold); font-weight: 600; }
+  .report-id-block { text-align: right; }
+  .report-id-label { font-size: 9px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; }
+  .report-id-value { font-size: 14px; font-weight: 700; color: var(--gold); letter-spacing: 1px; margin-top: 2px; }
+  .report-id-sub { font-size: 10px; color: var(--text-dim); margin-top: 5px; }
+
+  /* SECTION */
+  .section { padding: 24px 36px; border-bottom: 1px solid var(--border); }
+  .section-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 3px;
+    color: var(--gold); margin-bottom: 18px; font-weight: 700;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border-lt); }
+
+  /* FIELDS */
+  .field-grid { display: grid; gap: 14px 20px; }
+  .field-grid-2 { grid-template-columns: 1fr 1fr; }
+  .field-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 9px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; }
+  .field input, .field select, .field textarea {
+    border: 1px solid var(--border-lt); padding: 9px 11px;
+    font-family: inherit; font-size: 13px; color: var(--white);
+    background: var(--gray-mid); outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    -webkit-appearance: none;
+  }
+  .field input::placeholder, .field textarea::placeholder { color: var(--text-dim); }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); background: var(--gray-light); }
+  .field select option { background: var(--gray-mid); color: var(--white); }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field.span-2 { grid-column: span 2; }
+  .field.span-3 { grid-column: span 3; }
+  .days-display {
+    padding: 9px 11px; background: var(--gray-blue);
+    border: 1px solid var(--border-lt); color: var(--text-muted);
+    font-size: 13px; min-height: 38px;
+  }
+
+  /* POLICY BOX */
+  .policy-box {
+    background: rgba(200,154,63,0.07); border-left: 3px solid var(--gold);
+    padding: 12px 16px; font-size: 12px; color: var(--silver); line-height: 1.7;
+  }
+  .policy-box strong { color: var(--gold); font-weight: 700; }
+
+  /* TABLE */
+  .expense-table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--charcoal); color: var(--silver);
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+    font-weight: 700; padding: 10px 8px; text-align: left;
+    white-space: nowrap; border-bottom: 1px solid var(--gold);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  tbody tr:hover { background: rgba(200,154,63,0.04); }
+  tbody td { padding: 5px 4px; vertical-align: middle; }
+  tbody td input, tbody td select {
+    border: 1px solid transparent; padding: 6px 7px;
+    font-family: inherit; font-size: 12.5px; color: var(--white);
+    background: transparent; outline: none; width: 100%;
+    -webkit-appearance: none; transition: border-color 0.15s, background 0.15s;
+  }
+  tbody td select option { background: var(--gray-mid); }
+  tbody td input:focus, tbody td select:focus { border-color: var(--gold); background: var(--gray-mid); }
+  tbody td input::placeholder { color: var(--text-dim); }
+  tbody td.amount input { text-align: right; font-weight: 500; }
+  tfoot { border-top: 1px solid var(--gold); }
+  tfoot td { padding: 12px 8px; }
+  tfoot .total-label { text-align: right; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); }
+  tfoot .total-value { font-size: 18px; font-weight: 700; text-align: right; color: var(--gold); }
+
+  /* ADD ROW */
+  .add-row-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 14px; padding: 8px 16px;
+    background: transparent; border: 1px solid var(--border-lt);
+    font-family: inherit; font-size: 10px; font-weight: 700;
+    color: var(--text-dim); cursor: pointer;
+    text-transform: uppercase; letter-spacing: 2px; transition: all 0.15s;
+  }
+  .add-row-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* SUMMARY */
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .summary-item {
+    padding: 18px 20px; border: 1px solid var(--border);
+    margin: -1px -1px 0 0; background: var(--gray-mid);
+  }
+  .s-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 6px; font-weight: 700; }
+  .s-value { font-size: 20px; font-weight: 700; color: var(--white); }
+  .s-value.gold { color: var(--gold); }
+  .s-value.green { color: var(--green); }
+  .s-value.warn { color: var(--warn); }
+  .s-note { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+  .s-note.warn { color: var(--warn); }
+  .s-note.green { color: var(--green); }
+
+  /* NR WARNING */
+  .nr-warning {
+    display: none; background: rgba(213,41,65,0.1);
+    border-left: 3px solid var(--warn); padding: 10px 14px;
+    margin-top: 14px; font-size: 12px; color: var(--warn);
+  }
+  .nr-warning.visible { display: block; }
+
+  .del-btn { background: none; border: none; color: var(--border-lt); cursor: pointer; font-size: 16px; padding: 0 4px; transition: color 0.1s; line-height: 1; }
+  .del-btn:hover { color: var(--warn); }
+
+  /* CERT */
+  .cert-section { padding: 24px 36px; background: var(--charcoal); border-top: 1px solid var(--border); }
+  .cert-text { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; line-height: 1.8; border-left: 2px solid var(--gold); padding-left: 14px; }
+  .sig-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* ACTIONS */
+  .actions { padding: 24px 36px; display: flex; gap: 12px; align-items: center; background: var(--gray-blue); border-top: 1px solid var(--border); }
+  .btn-primary { background: var(--gold); color: var(--charcoal); border: none; padding: 12px 28px; font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 2px; text-transform: uppercase; transition: background 0.15s; }
+  .btn-primary:hover { background: var(--gold-lt); }
+  .btn-secondary { background: transparent; color: var(--text-dim); border: 1px solid var(--border-lt); padding: 12px 24px; font-family: inherit; font-size: 11px; cursor: pointer; letter-spacing: 2px; text-transform: uppercase; transition: all 0.15s; }
+  .btn-secondary:hover { border-color: var(--silver); color: var(--silver); }
+  .action-note { font-size: 11px; color: var(--text-dim); margin-left: 8px; }
+
+  .gold-rule { height: 1px; background: linear-gradient(90deg, var(--gold) 0%, transparent 100%); }
+
+  @media (max-width: 720px) {
+    .report-header { flex-direction: column; gap: 16px; align-items: flex-start; }
+    .field-grid-2, .field-grid-3 { grid-template-columns: 1fr; }
+    .sig-grid { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .section { padding: 20px; }
+    .actions { flex-direction: column; align-items: stretch; }
+    .field.span-2, .field.span-3 { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+<div class="sheet">
+
+  <!-- HEADER -->
+  <div class="report-header">
+    <div class="brand">
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <img src="data:image/png;base64,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" alt="Arqitech" style="height:32px; width:auto; display:block;">
+        <div class="brand-sub" style="padding-left:2px;">Expense Report</div>
+      </div>
+    </div>
+    <div class="report-id-block">
+      <div class="report-id-label">Report ID</div>
+      <div class="report-id-value">EXP-<span id="report-id-num">--</span></div>
+      <div class="report-id-sub">Policy Effective: February 2026</div>
+    </div>
+  </div>
+  <div class="gold-rule"></div>
+
+  <!-- TRAVELER INFO -->
+  <div class="section">
+    <div class="section-label">Traveler Information</div>
+    <div class="field-grid field-grid-3">
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="emp-name" placeholder="First Last" oninput="generateReportId()">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="emp-email" placeholder="you@arqitech.com">
+      </div>
+      <div class="field">
+        <label>Department / Role</label>
+        <input type="text" id="emp-dept" placeholder="e.g. Engineering">
+      </div>
+      <div class="field">
+        <label>Manager / Approver</label>
+        <input type="text" id="emp-mgr" placeholder="Approver name">
+      </div>
+      <div class="field">
+        <label>Trip Start Date</label>
+        <input type="date" id="trip-start" onchange="calcTripDays()">
+      </div>
+      <div class="field">
+        <label>Trip End Date</label>
+        <input type="date" id="trip-end" onchange="calcTripDays()">
+      </div>
+      <div class="field span-2">
+        <label>Business Purpose / Trip Description</label>
+        <textarea id="trip-purpose" placeholder="Describe the business reason for this trip (required)"></textarea>
+      </div>
+      <div class="field">
+        <label>Destination(s)</label>
+        <input type="text" id="trip-dest" placeholder="City, State">
+      </div>
+      <div class="field">
+        <label>Pre-Travel Approval</label>
+        <select id="pre-approval">
+          <option value="">Select...</option>
+          <option value="yes">Yes — verbal</option>
+          <option value="email">Yes — via email</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Trip Duration</label>
+        <div class="days-display" id="trip-days-display">—</div>
+        <input type="hidden" id="trip-days" value="">
+      </div>
+    </div>
+  </div>
+
+  <!-- POLICY REF -->
+  <div class="section" style="padding-bottom:20px;">
+    <div class="section-label">Policy Reference</div>
+    <div class="policy-box">
+      <strong>Per Diem:</strong> $75/day all meals &nbsp;·&nbsp;
+      <strong>Hotel:</strong> $150–$200/night (above $200 = COO approval required) &nbsp;·&nbsp;
+      <strong>Air:</strong> Economy only &nbsp;·&nbsp;
+      <strong>Receipts required</strong> for any single expense over $25 &nbsp;·&nbsp;
+      <strong>Alcohol:</strong> Never reimbursable &nbsp;·&nbsp;
+      <strong>Submit within 30 days of return</strong>
+    </div>
+  </div>
+
+  <!-- EXPENSE LINES -->
+  <div class="section">
+    <div class="section-label">Expense Line Items</div>
+    <div class="expense-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:95px">Date</th>
+            <th style="width:175px">Category</th>
+            <th>Description / Business Purpose</th>
+            <th style="width:80px">Receipt?</th>
+            <th style="width:95px; text-align:right;">Amount ($)</th>
+            <th style="width:26px"></th>
+            <th style="width:26px"></th>
+          </tr>
+        </thead>
+        <tbody id="expense-rows"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="total-label">Total Requested</td>
+            <td class="total-value" id="subtotal">$0.00</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <button class="add-row-btn no-print" onclick="addRow()">+ Add Expense</button>
+    <div class="nr-warning" id="nr-warning">⚠ Flagged categories are non-reimbursable per policy. Remove or these lines will be denied.</div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="section" style="padding-bottom:28px;">
+    <div class="section-label">Summary</div>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="s-label">Total Requested</div>
+        <div class="s-value gold" id="sum-total">$0.00</div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">Per Diem Allowance</div>
+        <div class="s-value green" id="sum-perdiem">$0.00</div>
+        <div class="s-note" id="sum-perdiem-note">$75 × 0 days</div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">Meals Claimed</div>
+        <div class="s-value" id="sum-meals">$0.00</div>
+        <div class="s-note" id="sum-meals-note"></div>
+      </div>
+      <div class="summary-item">
+        <div class="s-label">Non-Meal Expenses</div>
+        <div class="s-value" id="sum-other">$0.00</div>
+        <div class="s-note">Air, hotel, transport, etc.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CERTIFICATION -->
+  <div class="cert-section">
+    <div class="section-label" style="color:var(--gold); font-size:9px; letter-spacing:3px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:10px;">Certification<span style="flex:1; height:1px; background:var(--border-lt); display:block;"></span></div>
+    <div class="cert-text">
+      I certify that the expenses listed above were incurred by me for legitimate business purposes and are in compliance with the Arqitech Business Travel &amp; Expense Policy (effective February 2026). All expenses have prior approval where required. I have not been nor will I be reimbursed for these expenses by any other source.
+    </div>
+    <div class="sig-grid">
+      <div class="field">
+        <label>Employee Signature (type full name)</label>
+        <input type="text" placeholder="Type full name to certify">
+      </div>
+      <div class="field">
+        <label>Date Submitted</label>
+        <input type="date" id="submit-date">
+      </div>
+      <div class="field">
+        <label>Manager Approval — approver use only</label>
+        <input type="text" placeholder="Approver name + date">
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions no-print">
+    <button class="btn-primary" onclick="window.print()">Print / Save as PDF</button>
+    <button class="btn-secondary" onclick="clearForm()">Clear Form</button>
+    <span class="action-note">Browser Print → Save as PDF generates the submission file.</span>
+  </div>
+
+</div>
+</div>
+
+<script>
+  const CATEGORIES = [
+    { label: '— Select Category —', nr: false },
+    { label: 'Air — Economy Fare', nr: false },
+    { label: 'Air — Baggage Fee', nr: false },
+    { label: 'Air — In-Flight WiFi', nr: false },
+    { label: 'Hotel — Room', nr: false },
+    { label: 'Hotel — WiFi', nr: false },
+    { label: 'Hotel — Laundry (5+ nights)', nr: false },
+    { label: 'Ground — Rideshare / Taxi', nr: false },
+    { label: 'Ground — Rental Car', nr: false },
+    { label: 'Ground — Parking', nr: false },
+    { label: 'Ground — Public Transit', nr: false },
+    { label: 'Ground — Personal Vehicle (mileage)', nr: false },
+    { label: 'Meals — Per Diem', nr: false },
+    { label: 'Meals — Business Meal (client/partner)', nr: false },
+    { label: '⚠ Alcohol', nr: true },
+    { label: '⚠ Personal Entertainment', nr: true },
+    { label: '⚠ Seat Upgrade (not pre-approved)', nr: true },
+    { label: '⚠ Suite Upgrade', nr: true },
+    { label: '⚠ Minibar', nr: true },
+    { label: 'Other — Pre-Approved', nr: false },
+  ];
+
+  let rowCount = 0;
+
+  function addRow() {
+    rowCount++;
+    const tbody = document.getElementById('expense-rows');
+    const tr = document.createElement('tr');
+    tr.id = 'row-' + rowCount;
+    const rId = rowCount;
+    const catOptions = CATEGORIES.map(c =>
+      `<option value="${c.label}" data-nr="${c.nr}">${c.label}</option>`
+    ).join('');
+    tr.innerHTML = `
+      <td><input type="date" onchange="recalc()"></td>
+      <td><select onchange="checkNR(this); recalc()">${catOptions}</select></td>
+      <td><input type="text" placeholder="Description / attendees for business meals"></td>
+      <td>
+        <select>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+          <option value="na">N/A (&lt;$25)</option>
+        </select>
+      </td>
+      <td class="amount"><input type="number" min="0" step="0.01" placeholder="0.00" oninput="recalc()"></td>
+      <td style="text-align:center"><span id="flag-${rId}" title="" style="font-size:13px; cursor:help;"></span></td>
+      <td><button class="del-btn" onclick="delRow('row-${rId}')">×</button></td>
+    `;
+    tbody.appendChild(tr);
+    recalc();
+  }
+
+  function delRow(id) {
+    const row = document.getElementById(id);
+    if (row) row.remove();
+    recalc(); checkNRWarning();
+  }
+
+  function checkNR(sel) {
+    const isNR = sel.options[sel.selectedIndex].getAttribute('data-nr') === 'true';
+    const flag = sel.closest('tr').querySelector('[id^="flag-"]');
+    flag.textContent = isNR ? '🚫' : '';
+    flag.title = isNR ? 'Non-reimbursable per policy' : '';
+    checkNRWarning();
+  }
+
+  function checkNRWarning() {
+    const hasNR = [...document.querySelectorAll('[id^="flag-"]')].some(f => f.textContent === '🚫');
+    document.getElementById('nr-warning').classList.toggle('visible', hasNR);
+  }
+
+  function recalc() {
+    let total = 0, meals = 0, other = 0;
+    document.querySelectorAll('#expense-rows tr').forEach(row => {
+      const amt = parseFloat(row.querySelector('td.amount input')?.value) || 0;
+      const cat = row.querySelector('td select')?.value || '';
+      total += amt;
+      if (cat.includes('Meals') || cat.includes('Per Diem')) meals += amt;
+      else other += amt;
+    });
+    const fmt = n => '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    document.getElementById('subtotal').textContent = fmt(total);
+    document.getElementById('sum-total').textContent = fmt(total);
+    document.getElementById('sum-meals').textContent = fmt(meals);
+    document.getElementById('sum-other').textContent = fmt(other);
+
+    const days = parseInt(document.getElementById('trip-days').value) || 0;
+    const pdAllowance = days * 75;
+    document.getElementById('sum-perdiem').textContent = fmt(pdAllowance);
+    document.getElementById('sum-perdiem-note').textContent = '$75 × ' + days + ' day' + (days !== 1 ? 's' : '');
+
+    const mealNote = document.getElementById('sum-meals-note');
+    if (days > 0 && meals > pdAllowance) {
+      mealNote.textContent = '⚠ Exceeds allowance by ' + fmt(meals - pdAllowance);
+      mealNote.className = 's-note warn';
+    } else if (days > 0 && meals > 0) {
+      mealNote.textContent = 'Within per diem allowance';
+      mealNote.className = 's-note green';
+    } else {
+      mealNote.textContent = ''; mealNote.className = 's-note';
+    }
+  }
+
+  function calcTripDays() {
+    const s = document.getElementById('trip-start').value;
+    const e = document.getElementById('trip-end').value;
+    if (s && e) {
+      const diff = Math.round((new Date(e) - new Date(s)) / 86400000) + 1;
+      if (diff > 0) {
+        document.getElementById('trip-days').value = diff;
+        document.getElementById('trip-days-display').textContent = diff + ' day' + (diff !== 1 ? 's' : '');
+      }
+      recalc();
+    }
+  }
+
+  function generateReportId() {
+    const name = document.getElementById('emp-name').value;
+    const initials = name.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 3);
+    document.getElementById('report-id-num').textContent = (initials || 'XX') + '-' + Date.now().toString().slice(-5);
+  }
+
+  function clearForm() {
+    if (!confirm('Clear all data?')) return;
+    document.querySelectorAll('input:not([type=hidden]), select, textarea').forEach(el => { el.value = ''; });
+    document.getElementById('expense-rows').innerHTML = '';
+    rowCount = 0; recalc();
+    document.getElementById('nr-warning').classList.remove('visible');
+    document.getElementById('report-id-num').textContent = '--';
+    document.getElementById('trip-days-display').textContent = '—';
+    document.getElementById('trip-days').value = '';
+    document.getElementById('submit-date').value = new Date().toISOString().split('T')[0];
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('submit-date').value = new Date().toISOString().split('T')[0];
+    addRow(); addRow(); addRow();
+  });
+</script>
+</body>
+</html>
